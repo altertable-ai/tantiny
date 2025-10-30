@@ -1,0 +1,11 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "ruby",
+      "package-name": "tantiny",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "extra-files": ["lib/tantiny/version.rb", "Cargo.toml"]
+    }
+  }
+}
