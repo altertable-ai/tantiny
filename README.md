@@ -1,23 +1,23 @@
-[![Build workflow](https://github.com/baygeldin/tantiny/actions/workflows/build.yml/badge.svg)](https://github.com/baygeldin/tantiny/actions/workflows/build.yml)
-[![Tantiny](https://img.shields.io/gem/v/tantiny?color=31c553)](https://rubygems.org/gems/tantiny)
-[![Maintainability](https://api.codeclimate.com/v1/badges/1b466b52d2ba71ab9d80/maintainability)](https://codeclimate.com/github/baygeldin/tantiny/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/1b466b52d2ba71ab9d80/test_coverage)](https://codeclimate.com/github/baygeldin/tantiny/test_coverage)
+[![Build workflow](https://github.com/altertable-ai/tantiny/actions/workflows/build.yml/badge.svg)](https://github.com/altertable-ai/tantiny/actions/workflows/build.yml) [![Tantiny](https://img.shields.io/gem/v/tantiny?color=31c553)](https://rubygems.org/gems/tantiny) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-> [!WARNING]
-> The gem is not currently maintained and the development is put on hold. If you're interested in taking over, feel free to reach out to me.
+> This is a fork of the [original Tantiny](https://github.com/baygeldin/tantiny) gem by [Alexander Baygeldin](https://github.com/baygeldin). Following https://github.com/baygeldin/tantiny/pull/24 we agreed transfering ownership of the gem to [Altertable](https://github.com/altertable-ai) so we can keep it up to date with the latest versions of Tantivy and Ruby.
 
 # Tantiny
 
-Need a fast full-text search for your Ruby script, but Solr and Elasticsearch are an overkill? 😏
+Need a fast full-text search for your Ruby script, but don't want to host/operate a full-blown search engine yet?
 
-You're in the right place. **Tantiny** is a minimalistic full-text search library for Ruby based on [Tanti**v**y](https://github.com/quickwit-oss/tantivy) (an awesome alternative to Apache Lucene written in Rust). It's great for cases when your task at hand requires a full-text search, but configuring a full-blown distributed search engine would take more time than the task itself. And even if you already use such an engine in your project (which is highly likely, actually), it still might be easier to just use Tantiny instead because unlike Solr and Elasticsearch it doesn't need *anything* to work (no separate server or process or whatever), it's purely embeddable. So, when you find yourself in a situation when using your search engine of choice would be tricky/inconvinient or would require additional setup you can always revert back to a quick and dirty solution that is nontheless flexible and fast.
+You're in the right place. **Tantiny** is a minimalistic full-text search library for Ruby based on [Tanti**v**y](https://github.com/quickwit-oss/tantivy) (an awesome alternative to Apache Lucene written in Rust). It's great for cases when your task at hand requires a full-text search, but configuring a full-blown distributed search engine would take more time than the task itself. And even if you already use such an engine in your project (which is highly likely, actually), it still might be easier to just use Tantiny instead because unlike Solr, Elasticsearch, or any hosted search engine it doesn't need _anything_ to work (no separate server, process, API or whatever), it's purely embeddable. So, when you find yourself in a situation when using your search engine of choice would be tricky/inconvinient or would require additional setup you can always revert back to a quick and dirty solution that is nontheless flexible and fast.
 
 Tantiny is not exactly Ruby bindings to Tantivy, but it tries to be close. The main philosophy is to provide low-level access to Tantivy's inverted index, but with a nice Ruby-esque API, sensible defaults, and additional functionality sprinkled on top.
 
 Take a look at the most basic example:
 
 ```ruby
+# Persisted index
 index = Tantiny::Index.new("/path/to/index") { text :description }
+
+# Or in-memory (no persistence)
+index = Tantiny::Index.new { text :description }
 
 index << { id: 1, description: "Hello World!" }
 index << { id: 2, description: "What's up?" }
@@ -46,39 +46,51 @@ Or install it yourself as:
 
 You don't **have to** have Rust installed on your system since Tantiny will try to download the pre-compiled binaries hosted on GitHub releases during the installation. However, if no pre-compiled binaries were found for your system (which is a combination of platform, architecture, and Ruby version) you will need to [install Rust](https://www.rust-lang.org/tools/install) first.
 
-> [!WARNING]
-> Only Rust versions up to `1.77` are supported. See [this issue](https://github.com/baygeldin/tantiny/issues/21) for more details.
+## Defining the index schema
 
-> [!IMPORTANT]
-> Please, make sure to specify the minor version when declaring dependency on `tantiny`. The API is a subject to change, and until it reaches `1.0.0` a bump in the minor version will most likely signify a breaking change.
-
-## Defining the index
-
-You have to specify a path to where the index would be stored and a block that defines the schema:
+Whether you want to use a persisted index or an in-memory index, you need to define the schema first:
 
 ```ruby
-Tantiny::Index.new "/tmp/index" do
+Tantiny::Index.new(path_or_memory) do
   id :imdb_id
-  facet :category
   string :title
   text :description
   integer :duration
   double :rating
   date :release_date
+  facet :category
 end
 ```
 
+## In-memory indexes
+
+For small to medium datasets or temporary search needs (or tests!), you can create an in-memory index by omitting the path parameter:
+
+```ruby
+index = Tantiny::Index.new do
+  text :title
+  text :description
+  double :price
+end
+```
+
+In-memory indexes are perfect when you don't need persistence between runs, or when you're building a search index from data that already exists in a database. They offer the same full-text search capabilities without any file I/O overhead.
+
+## Field types
+
 Here are the descriptions for every field type:
 
-| Type | Description |
-| --- | --- |
-| id | Specifies where documents' ids are stored (defaults to `:id`). |
-| facet | Fields with values like `/animals/birds` (i.e. hierarchial categories). |
-| string | Fields with text that are **not** tokenized. |
-| text | Fields with text that are tokenized by the specified tokenizer. |
-| integer | Fields with integer values. |
-| double  | Fields with float values. |
-| date | Fields with either `DateTime` type or something that converts to it. |
+| Type    | Description                                                             |
+| ------- | ----------------------------------------------------------------------- |
+| id      | Specifies where documents' ids are stored (defaults to `:id`).          |
+| facet   | Fields with values like `/animals/birds` (i.e. hierarchial categories). |
+| string  | Fields with text that are **not** tokenized.                            |
+| text    | Fields with text that are tokenized by the specified tokenizer.         |
+| integer | Fields with integer values.                                             |
+| double  | Fields with float values.                                               |
+| date    | Fields with either `DateTime` type or something that converts to it.    |
+
+Each field can either be a single value or an array of values.
 
 ## Managing documents
 
@@ -147,7 +159,7 @@ index.transaction do
 end
 ```
 
-Transactions group changes and [commit](https://docs.rs/tantivy/latest/tantivy/struct.IndexWriter.html#method.commit) them to the index in one go. This is *dramatically* more efficient than performing these changes one by one. In fact, all writing operations (i.e. `<<` and `delete`) are wrapped in a transaction implicitly when you call them outside of a transaction, so calling `<<` 10 times outside of a transaction is the same thing as performing 10 separate transactions. 
+Transactions group changes and [commit](https://docs.rs/tantivy/latest/tantivy/struct.IndexWriter.html#method.commit) them to the index in one go. This is _dramatically_ more efficient than performing these changes one by one. In fact, all writing operations (i.e. `<<` and `delete`) are wrapped in a transaction implicitly when you call them outside of a transaction, so calling `<<` 10 times outside of a transaction is the same thing as performing 10 separate transactions.
 
 ### Concurrency and thread-safety
 
@@ -187,7 +199,7 @@ You may wonder, how exactly does it conduct the search? Well, the default behavi
 index.search("a dlunk, a kib, and an olt mab", fuzzy_distance: 1)
 ```
 
-However, you can customize it by composing your own query out of basic building blocks: 
+However, you can customize it by composing your own query out of basic building blocks:
 
 ```ruby
 popular_movies = index.range_query(:rating, 8.0..10.0)
@@ -203,20 +215,18 @@ I know, weird taste! But pretty cool, huh? Take a look at all the available quer
 
 ### Supported queries
 
-| Query | Behavior |
-| --- | --- |
-| all_query | Returns all indexed documents. |
-| empty_query | Returns exactly nothing (used internally). |
-| term_query | Documents that contain the specified term. |
-| fuzzy_term_query | Documents that contain the specified term within a Levenshtein distance. |
-| phrase_query | Documents that contain the specified sequence of terms. |
-| regex_query | Documents that contain a term that matches the specified regex. |
-| prefix_query | Documents that contain a term with the specified prefix. |
-| range_query | Documents that with an `integer`, `double` or `date` field within the specified range. |
-| facet_query | Documents that belong to the specified category. |
-| smart_query | A combination of `term_query`, `fuzzy_term_query` and `prefix_query`. |
-
-Take a look at the [signatures file](https://github.com/baygeldin/tantiny/blob/main/sig/tantiny/query.rbs) to see what parameters do queries accept.
+| Query            | Behavior                                                                               |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| all_query        | Returns all indexed documents.                                                         |
+| empty_query      | Returns exactly nothing (used internally).                                             |
+| term_query       | Documents that contain the specified term.                                             |
+| fuzzy_term_query | Documents that contain the specified term within a Levenshtein distance.               |
+| phrase_query     | Documents that contain the specified sequence of terms.                                |
+| regex_query      | Documents that contain a term that matches the specified regex.                        |
+| prefix_query     | Documents that contain a term with the specified prefix.                               |
+| range_query      | Documents that with an `integer`, `double` or `date` field within the specified range. |
+| facet_query      | Documents that belong to the specified category.                                       |
+| smart_query      | A combination of `term_query`, `fuzzy_term_query` and `prefix_query`.                  |
 
 ### Searching on multiple fields
 
@@ -281,7 +291,7 @@ The `regex_query` accepts the regex pattern, but it has to be a [Rust regex](htt
 
 So, we've mentioned tokenizers more than once already. What are they?
 
-Tokenizers is what Tantivy uses to chop your text onto terms to build an inverted index. Then you can search the index by these terms. It's an important concept to understand so that you don't get confused when `index.term_query(:description, "Hello")` returns nothing because `Hello` isn't a term, but `hello` is. You have to extract the terms from the query before searching the index. Currently, only `smart_query` does that for you. Also, the only field type that is tokenized is `text`, so for `string` fields you should use the exact match (i.e. `index.term_query(:title, "Hello")`). 
+Tokenizers is what Tantivy uses to chop your text onto terms to build an inverted index. Then you can search the index by these terms. It's an important concept to understand so that you don't get confused when `index.term_query(:description, "Hello")` returns nothing because `Hello` isn't a term, but `hello` is. You have to extract the terms from the query before searching the index. Currently, only `smart_query` does that for you. Also, the only field type that is tokenized is `text`, so for `string` fields you should use the exact match (i.e. `index.term_query(:title, "Hello")`).
 
 ### Specifying the tokenizer
 
@@ -325,19 +335,80 @@ Ngram tokenizer chops your text onto ngrams of specified size.
 tokenizer = Tantiny::Tokenizer.new(:ngram, min: 5, max: 10, prefix_only: true)
 tokenizer.terms("Morrowind") # ["Morro", "Morrow", "Morrowi", "Morrowin", "Morrowind"]
 ```
+
 ## Retrieving documents
 
 You may have noticed that `search` method returns only documents ids. This is by design. The documents themselves are **not** stored in the index. Tantiny is a minimalistic library, so it tries to keep things simple. If you need to retrieve a full document, use a key-value store like Redis alongside.
+
+## Highlighting
+
+Tantiny supports highlighting of search results. This is useful when you want to display the search results in a more readable format.
+
+```ruby
+Tantiny::Query.highlight(field_text, query_string)
+```
+
+It supports fuzzy highlighting by specifying the fuzzy distance.
+
+```ruby
+Tantiny::Query.highlight(field_text, query_string, fuzzy_distance: 2)
+```
+
+As well as custom tokenizers, but make sure to use the same tokenizer that was used to index the field.
+
+```ruby
+tokenizer = Tantiny::Tokenizer.new(:stemmer, language: :fr)
+Tantiny::Query.highlight(field_text, query_string, tokenizer: tokenizer)
+```
+
+This will return the text with the terms highlighted:
+
+```ruby
+Tantiny::Query.highlight("hellow world. you are welcome.", "hello you")
+# "<b>hellow</b> world. <b>you</b> are welcome."
+```
+
+## Examples
+
+The [examples directory](examples/) contains practical demonstrations of Tantiny's capabilities. These examples are great starting points for understanding how to use Tantiny in real-world scenarios.
+
+### Simple Ranking Example
+
+[`examples/simple_ranking.rb`](examples/simple_ranking.rb)
+
+A minimal demonstration of field-based ranking showing:
+
+- Creating an in-memory index
+- Using boost values to rank title matches higher than description matches
+- Side-by-side comparison of equal weights vs boosted fields
+
+This is perfect for understanding the core concept of ranking in just a few lines of code.
+
+### Ecommerce Example
+
+[`examples/ecommerce.rb`](examples/ecommerce.rb)
+
+A comprehensive example demonstrating in-memory search for a product catalog:
+
+- **In-memory indexing** - Perfect for small to medium datasets without persistent storage
+- **Product search** - Indexing products with various attributes (title, description, category, price, stock)
+- **Fuzzy search** - Handling typos and misspellings (e.g., "loptop" → "laptop")
+- **Field-based ranking** - Boosting title matches to rank higher than description matches
+- **Complex queries** - Combining multiple conditions with AND/OR operators
+- **Category filtering** - Filtering products by exact category match
+- **Price range queries** - Finding products within a specific price range
+
+See the [examples README](examples/README.md) for more details.
 
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake build` to build native extensions, and then `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
-We use [conventional commits](https://www.conventionalcommits.org) to automatically generate the CHANGELOG, bump the semantic version, and to publish and release the gem. All you need to do is stick to the convention and [CI will take care of everything else](https://github.com/baygeldin/tantiny/blob/main/.github/workflows/release.yml) for you.
+We use [conventional commits](https://www.conventionalcommits.org) to automatically generate the CHANGELOG, bump the semantic version, and to publish and release the gem. All you need to do is stick to the convention and [CI will take care of everything else](https://github.com/altertable-ai/tantiny/blob/main/.github/workflows/release.yml) for you.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/baygeldin/tantiny.
+Bug reports and pull requests are welcome on GitHub at https://github.com/altertable-ai/tantiny.
 
 ## License
 

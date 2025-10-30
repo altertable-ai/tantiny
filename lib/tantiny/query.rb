@@ -32,37 +32,37 @@ module Tantiny
         __new_empty_query
       end
 
-      def term_query(index, fields, term, **options)
+      def term_query(index, fields, term, **)
         allowed_fields = text_and_strings(index)
-        construct_query(index, :term, allowed_fields, fields, [term.to_s], **options)
+        construct_query(index, :term, allowed_fields, fields, [term.to_s], **)
       end
 
-      def fuzzy_term_query(index, fields, term, distance = DEFAULT_FUZZY_DISTANCE, **options)
+      def fuzzy_term_query(index, fields, term, distance = DEFAULT_FUZZY_DISTANCE, **)
         params = [term.to_s, distance.to_i]
         allowed_fields = text_and_strings(index)
-        construct_query(index, :fuzzy_term, allowed_fields, fields, params, **options)
+        construct_query(index, :fuzzy_term, allowed_fields, fields, params, **)
       end
 
-      def phrase_query(index, fields, phrase, **options)
+      def phrase_query(index, fields, phrase, **)
         queries = [*fields].map do |f|
           terms = index.schema.tokenizer_for(f).terms(phrase)
           allowed_fields = index.schema.text_fields
-          construct_query(index, :phrase, allowed_fields, f, [terms], **options)
+          construct_query(index, :phrase, allowed_fields, f, [terms], **)
         end
 
         queries.empty? ? empty_query : disjunction(*queries)
       end
 
-      def regex_query(index, fields, regex, **options)
+      def regex_query(index, fields, regex, **)
         allowed_fields = text_and_strings(index)
-        construct_query(index, :regex, allowed_fields, fields, [regex.to_s], **options)
+        construct_query(index, :regex, allowed_fields, fields, [regex.to_s], **)
       end
 
-      def prefix_query(index, fields, prefix, **options)
-        regex_query(index, fields, Regexp.escape(prefix) + ".*", **options)
+      def prefix_query(index, fields, prefix, **)
+        regex_query(index, fields, Regexp.escape(prefix) + ".*", **)
       end
 
-      def range_query(index, fields, range, **options)
+      def range_query(index, fields, range, **)
         schema = index.schema
 
         case range.first
@@ -81,19 +81,19 @@ module Tantiny
         end
 
         # @type var allowed_fields: Array[Symbol]
-        construct_query(index, :range, allowed_fields, fields, [from, to], **options)
+        construct_query(index, :range, allowed_fields, fields, [from, to], **)
       end
 
-      def facet_query(index, field, path, **options)
+      def facet_query(index, field, path, **)
         allowed_fields = index.schema.facet_fields
-        construct_query(index, :facet, allowed_fields, field, [path], **options)
+        construct_query(index, :facet, allowed_fields, field, [path], **)
       end
 
       def smart_query(index, fields, query_string, **options)
         fuzzy_distance = options[:fuzzy_distance]
         boost_factor = options.fetch(:boost, DEFAULT_BOOST)
 
-        field_queries = [*fields].map do |field|
+        field_queries = [*fields].filter_map do |field|
           terms = index.schema.tokenizer_for(field).terms(query_string)
 
           # See: https://github.com/soutaro/steep/issues/272
@@ -113,9 +113,14 @@ module Tantiny
           last_term_query = prefix_query(index, field, terms.last) | term_queries.last
 
           conjunction(last_term_query, *term_queries[0...-1])
-        end.compact
+        end
 
         disjunction(*field_queries).boost(boost_factor)
+      end
+
+      def highlight(text, query_string, fuzzy_distance: 0, tokenizer: Tantiny::Tokenizer.new(:simple))
+        terms = tokenizer.terms(query_string).map(&:to_s)
+        __highlight(text.to_s, terms, fuzzy_distance)
       end
 
       private
