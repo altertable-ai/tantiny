@@ -3,17 +3,18 @@
 module Tantiny
   class Index
     LOCKFILE = ".tantiny.lock"
-    DEFAULT_WRITER_MEMORY = 5_000_000 # 5MB
+    DEFAULT_WRITER_MEMORY = 15_000_000 # 15MB
     DEFAULT_LIMIT = 10
 
-    def self.new(path, **options, &block)
-      FileUtils.mkdir_p(path)
+    def self.new(path = nil, **options, &)
+      # Only create directory if path is provided
+      FileUtils.mkdir_p(path) if path
 
       default_tokenizer = options[:tokenizer] || Tokenizer.default
-      schema = Schema.new(default_tokenizer, &block)
+      schema = Schema.new(default_tokenizer, &)
 
       object = __new(
-        path.to_s,
+        path&.to_s,
         schema.default_tokenizer,
         schema.field_tokenizers.transform_keys(&:to_s),
         schema.text_fields.map(&:to_s),
@@ -44,6 +45,10 @@ module Tantiny
 
     attr_reader :schema
 
+    def in_memory?
+      @path.nil?
+    end
+
     def transaction
       if inside_transaction?
         yield
@@ -68,12 +73,12 @@ module Tantiny
       transaction do
         __add_document(
           resolve(document, schema.id_field).to_s,
-          slice_document(document, schema.text_fields) { |v| v.to_s },
-          slice_document(document, schema.string_fields) { |v| v.to_s },
-          slice_document(document, schema.integer_fields) { |v| v.to_i },
-          slice_document(document, schema.double_fields) { |v| v.to_f },
-          slice_document(document, schema.date_fields) { |v| Helpers.timestamp(v) },
-          slice_document(document, schema.facet_fields) { |v| v.to_s }
+          slice_document(document, schema.text_fields) { |v| v.is_a?(Array) ? v.map(&:to_s) : v.to_s },
+          slice_document(document, schema.string_fields) { |v| v.is_a?(Array) ? v.map(&:to_s) : v.to_s },
+          slice_document(document, schema.integer_fields) { |v| v.is_a?(Array) ? v.map(&:to_i) : v.to_i },
+          slice_document(document, schema.double_fields) { |v| v.is_a?(Array) ? v.map(&:to_f) : v.to_f },
+          slice_document(document, schema.date_fields) { |v| v.is_a?(Array) ? v.map { |d| Helpers.timestamp(d) } : Helpers.timestamp(v) },
+          slice_document(document, schema.facet_fields) { |v| v.is_a?(Array) ? v.map(&:to_s) : v.to_s }
         )
       end
     end
@@ -115,9 +120,9 @@ module Tantiny
 
     def acquire_index_writer
       __acquire_index_writer(@indexer_memory)
-    rescue TantivyError => e
+    rescue RuntimeError => e
       case e.message
-      when /Failed to acquire Lockfile/
+      when /Failed to acquire Lockfile/, /LockBusy/
         raise IndexWriterBusyError.new
       else
         raise
@@ -154,14 +159,19 @@ module Tantiny
       @exclusive_writer
     end
 
-    def synchronize(&block)
-      @transaction_semaphore.synchronize do
-        Helpers.with_lock(lockfile_path, &block)
+    def synchronize(&)
+      # In-memory indexes don't need file locking
+      if in_memory?
+        @transaction_semaphore.synchronize(&)
+      else
+        @transaction_semaphore.synchronize do
+          Helpers.with_lock(lockfile_path, &)
+        end
       end
     end
 
     def lockfile_path
-      @lockfile_path ||= File.join(@path, LOCKFILE)
+      @lockfile_path ||= @path && File.join(@path, LOCKFILE)
     end
   end
 end
