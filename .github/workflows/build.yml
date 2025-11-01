@@ -21,7 +21,7 @@ jobs:
           - 3.4
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: bundle install
       - name: Cache crate
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
