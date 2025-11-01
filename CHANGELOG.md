@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/altertable-ai/tantiny/compare/tantiny-v0.3.3...tantiny/v0.4.0) (2025-11-01)
+
+[Resume development & transfer ownership](https://github.com/altertable-ai/tantiny/pull/1) following https://github.com/baygeldin/tantiny/pull/24
+
+### Features
+
+* Add simple highlighting feature ([7d4273e](https://github.com/altertable-ai/tantiny/commit/7d4273e657b658a670fc882714bb319d0b3b374c))
+* Add in-memory indexing capabilities ([7d4273e](https://github.com/altertable-ai/tantiny/commit/7d4273e657b658a670fc882714bb319d0b3b374c))
+
+### Bug Fixes
+
+* Support Ruby 3.4 moving from Rutie to Magnus ([7d4273e](https://github.com/altertable-ai/tantiny/commit/7d4273e657b658a670fc882714bb319d0b3b374c))
+
 ### [0.3.3](https://github.com/baygeldin/tantiny/compare/v0.3.2...v0.3.3) (2022-04-29)
 
 
