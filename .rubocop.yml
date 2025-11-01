@@ -5,8 +5,9 @@ inherit_gem:
 
 AllCops:
   NewCops: enable
+  SuggestExtensions: false
   Exclude:
-    - 'bin/*'
-    - 'vendor/**/*'
-    - 'Gemfile'
-  TargetRubyVersion: 3.1
+    - "bin/*"
+    - "vendor/**/*"
+    - "Gemfile"
+  TargetRubyVersion: 3.4

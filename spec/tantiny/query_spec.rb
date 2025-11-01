@@ -273,10 +273,10 @@ RSpec.describe Tantiny::Query do
 
     after(:all) { delete_documents(1, 2, 3) }
 
-    def search(query, **options)
+    def search(query, **)
       if query.is_a?(String)
         fields = @index.schema.text_fields
-        query = Tantiny::Query.smart_query(@index, fields, query, **options)
+        query = Tantiny::Query.smart_query(@index, fields, query, **)
       end
 
       @index.search(query).map(&:to_i)
@@ -376,6 +376,18 @@ RSpec.describe Tantiny::Query do
       query_2 = Tantiny::Query.term_query(@index, :string, "world", boost: 100)
 
       expect(search(query_1 | query_2).first).to eq(3)
+    end
+  end
+
+  describe "::highlight" do
+    it "highlights exact matches" do
+      highlighted = Tantiny::Query.highlight("HELLO world. you are welcome.", "hello you")
+      expect(highlighted).to eq("<b>HELLO</b> world. <b>you</b> are welcome.")
+    end
+
+    it "highlights the text with fuzzy matches" do
+      highlighted = Tantiny::Query.highlight("hellow world. you are welcome.", "hello you", fuzzy_distance: 1)
+      expect(highlighted).to eq("<b>hellow</b> world. <b>you</b> are welcome.")
     end
   end
 end
