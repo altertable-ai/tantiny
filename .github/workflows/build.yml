@@ -18,6 +18,8 @@ jobs:
     strategy:
       matrix:
         ruby:
+          - 3.2
+          - 3.3
           - 3.4
 
     steps:
@@ -41,9 +43,12 @@ jobs:
           key: cargo-${{ hashFiles('**/Cargo.lock') }}-ruby-${{ matrix.ruby }}
       - name: Build crate
         run: bundle exec rake build
-      - name: Lint source code with with RuboCop
+      - name: Lint Ruby
         if: ${{ matrix.ruby == env.DEFAULT_RUBY }}
         run: bundle exec rake rubocop
+      - name: Lint Rust
+        if: ${{ matrix.ruby == env.DEFAULT_RUBY }}
+        run: cargo fmt --check
       - name: Run specs
         if: ${{ github.ref != 'refs/heads/main' }}
         run: bundle exec rake spec
