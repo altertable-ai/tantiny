@@ -1,4 +1,4 @@
-[![Build workflow](https://github.com/altertable-ai/tantiny/actions/workflows/build.yml/badge.svg)](https://github.com/altertable-ai/tantiny/actions/workflows/build.yml)
+[![Build workflow](https://github.com/altertable-ai/tantiny/actions/workflows/build.yml/badge.svg)](https://github.com/altertable-ai/tantiny/actions/workflows/build.yml) [![Tantiny](https://img.shields.io/gem/v/tantiny?color=31c553)](https://rubygems.org/gems/tantiny) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 > This is a fork of the [original Tantiny](https://github.com/baygeldin/tantiny) gem by [Alexander Baygeldin](https://github.com/baygeldin). Following https://github.com/baygeldin/tantiny/pull/24 we agreed transfering ownership of the gem to [Altertable](https://github.com/altertable-ai) so we can keep it up to date with the latest versions of Tantivy and Ruby.
 
