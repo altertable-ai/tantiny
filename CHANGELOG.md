@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/altertable-ai/tantiny/compare/tantiny/v0.4.0...tantiny/v0.4.1) (2025-11-03)
+
+
+### Bug Fixes
+
+* **highlighting:** ensure the same tokenizer is used for text & query + handle last term as prefix ([#7](https://github.com/altertable-ai/tantiny/issues/7)) ([e713de3](https://github.com/altertable-ai/tantiny/commit/e713de385fea5a8060e615c173e9097871e052fc))
+
 ## [0.4.0](https://github.com/altertable-ai/tantiny/compare/tantiny-v0.3.3...tantiny/v0.4.0) (2025-11-01)
 
 [Resume development & transfer ownership](https://github.com/altertable-ai/tantiny/pull/1) following https://github.com/baygeldin/tantiny/pull/24
