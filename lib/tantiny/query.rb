@@ -118,9 +118,8 @@ module Tantiny
         disjunction(*field_queries).boost(boost_factor)
       end
 
-      def highlight(text, query_string, fuzzy_distance: 0, tokenizer: Tantiny::Tokenizer.new(:simple))
-        terms = tokenizer.terms(query_string).map(&:to_s)
-        __highlight(text.to_s, terms, fuzzy_distance)
+      def highlight(text, query_string, fuzzy_distance: 0, tokenizer: Tantiny::Tokenizer.new(:simple), last_term_min_length_prefix_match: 3)
+        __highlight(text.to_s, query_string.to_s, fuzzy_distance.to_i, tokenizer, last_term_min_length_prefix_match.to_i)
       end
 
       private

@@ -389,5 +389,10 @@ RSpec.describe Tantiny::Query do
       highlighted = Tantiny::Query.highlight("hellow world. you are welcome.", "hello you", fuzzy_distance: 1)
       expect(highlighted).to eq("<b>hellow</b> world. <b>you</b> are welcome.")
     end
+
+    it "highlights the last term with prefix match" do
+      highlighted = Tantiny::Query.highlight("you are welcome.", "you welc", fuzzy_distance: 1)
+      expect(highlighted).to eq("<b>you</b> are <b>welcome</b>.")
+    end
   end
 end
