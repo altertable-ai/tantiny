@@ -7,6 +7,7 @@ use tantivy::Term;
 use time::OffsetDateTime;
 
 use crate::index::Index;
+use crate::tokenizer::Tokenizer;
 
 #[magnus::wrap(class = "Tantiny::Query", free_immediately, size)]
 pub struct Query(Box<dyn tantivy::query::Query>);
@@ -213,27 +214,38 @@ impl Query {
         Query(Box::new(query))
     }
 
-    fn highlight(text: String, terms: Vec<String>, fuzzy_distance: i64) -> Result<String, Error> {
-        use tantivy::tokenizer::{LowerCaser, SimpleTokenizer, TextAnalyzer, TokenStream};
+    fn highlight(
+        text: String,
+        query_string: String,
+        fuzzy_distance: i64,
+        tokenizer: &Tokenizer,
+        last_term_min_length_prefix_match: i64,
+    ) -> Result<String, Error> {
+        use tantivy::tokenizer::TokenStream;
+        let mut analyzer = tokenizer.get_analyzer();
 
-        // Create a simple tokenizer for highlighting
-        let mut analyzer = TextAnalyzer::builder(SimpleTokenizer::default())
-            .filter(LowerCaser)
-            .build();
+        // Tokenizer the query string
+        let query_tokens = {
+            let mut query_string_token_stream = analyzer.token_stream(&query_string);
+            let mut tokens = Vec::new();
+            while query_string_token_stream.advance() {
+                let token = query_string_token_stream.token();
+                tokens.push(token.text.clone());
+            }
+            tokens
+        };
 
         // Tokenize the input text
-        let mut token_stream = analyzer.token_stream(&text);
-
-        // Collect all tokens with their positions
+        let mut input_text_token_stream = analyzer.token_stream(&text);
         let mut tokens = Vec::new();
-        while token_stream.advance() {
-            let token = token_stream.token();
+        while input_text_token_stream.advance() {
+            let token = input_text_token_stream.token();
             tokens.push((token.text.clone(), token.offset_from, token.offset_to));
         }
 
         // Build Levenshtein automata for each term (same algorithm as Tantivy's FuzzyTermQuery)
         let lev_builder = LevenshteinAutomatonBuilder::new(fuzzy_distance as u8, true);
-        let automata: Vec<_> = terms
+        let automata: Vec<_> = query_tokens
             .iter()
             .map(|term| lev_builder.build_dfa(term))
             .collect();
@@ -244,7 +256,7 @@ impl Query {
 
         for (token_text, start, end) in tokens {
             // Check if this token matches any of the query terms (exact or fuzzy)
-            let should_highlight = terms.iter().zip(&automata).any(|(term, dfa)| {
+            let fuzzy_match = query_tokens.iter().zip(&automata).any(|(term, dfa)| {
                 // Exact match
                 if token_text.eq_ignore_ascii_case(term) {
                     return true;
@@ -253,6 +265,14 @@ impl Query {
                 // Fuzzy match using Levenshtein automaton (same as Tantivy's FuzzyTermQuery)
                 matches!(dfa.eval(&token_text), Distance::Exact(_))
             });
+
+            // Check if this token is a prefix match for the last query term
+            let prefix_match = token_text.len() > last_term_min_length_prefix_match as usize
+                && query_tokens
+                    .last()
+                    .map(|last_token| token_text.starts_with(last_token))
+                    .unwrap_or(false);
+            let should_highlight = fuzzy_match || prefix_match;
 
             // Add the text before the token
             result.push_str(&text[last_pos..start]);
@@ -297,7 +317,7 @@ pub fn init(ruby: &Ruby, module: RModule) -> Result<(), Error> {
     class.define_singleton_method("__conjunction", magnus::function!(Query::conjunction, 1))?;
     class.define_method("__negation", magnus::method!(Query::negation, 0))?;
     class.define_method("__boost", magnus::method!(Query::boost, 1))?;
-    class.define_singleton_method("__highlight", magnus::function!(Query::highlight, 3))?;
+    class.define_singleton_method("__highlight", magnus::function!(Query::highlight, 5))?;
 
     Ok(())
 }
