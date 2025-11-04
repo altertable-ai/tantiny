@@ -272,16 +272,23 @@ impl Query {
                     .last()
                     .map(|last_token| token_text.starts_with(last_token))
                     .unwrap_or(false);
-            let should_highlight = fuzzy_match || prefix_match;
 
             // Add the text before the token
             result.push_str(&text[last_pos..start]);
 
             // Add the token, highlighted if it matches
-            if should_highlight {
+            if fuzzy_match {
                 result.push_str("<b>");
                 result.push_str(&text[start..end]);
                 result.push_str("</b>");
+            } else if prefix_match {
+                let last_token = query_tokens
+                    .last()
+                    .expect("Last token is present when prefix_match");
+                result.push_str("<b>");
+                result.push_str(&text[start..start + last_token.len()]);
+                result.push_str("</b>");
+                result.push_str(&text[start + last_token.len()..end]);
             } else {
                 result.push_str(&text[start..end]);
             }
