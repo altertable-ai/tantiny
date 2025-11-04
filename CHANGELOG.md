@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/altertable-ai/tantiny/compare/tantiny/v0.4.1...tantiny/v0.4.2) (2025-11-04)
+
+
+### Bug Fixes
+
+* **highlighting:** only highlight the matching prefix ([#9](https://github.com/altertable-ai/tantiny/issues/9)) ([8ce9bbe](https://github.com/altertable-ai/tantiny/commit/8ce9bbe56392ed055b56ee7118427e41c1140222))
+
 ## [0.4.1](https://github.com/altertable-ai/tantiny/compare/tantiny/v0.4.0...tantiny/v0.4.1) (2025-11-03)
 
 
